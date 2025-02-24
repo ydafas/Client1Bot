@@ -61,9 +61,9 @@ def fb_webhook():
                             logger.info("🔹 Received messaging_optins for sender_id: %s", sender_id)
                             if FB_PAGE_TOKEN:
                                 send_message(sender_id, f"Welcome to {BUSINESS_NAME}! You’ve opted into messaging. How can I help?",
-                                             quick_replies=[{"title": "Start", "payload": "start"}],
+                                             quick_replies=[{"title": "Get Started", "payload": "get_started"}],
                                              platform="meta")
-                        elif 'postback' in messaging_event:  # Handle postbacks (e.g., quick replies)
+                        elif 'postback' in messaging_event:  # Handle postbacks (e.g., quick replies, Get Started)
                             sender_id = messaging_event['sender']['id']
                             payload = messaging_event['postback'].get('payload', '').lower().strip()
                             process_message(sender_id, payload, platform="meta")
@@ -86,7 +86,7 @@ def wechat_webhook():
 # ✅ Process Incoming Messages (Multi-Platform Compatible)
 def process_message(sender_id, message, platform="meta"):
     # Handle non-stateful messages (quick replies, standalone commands) first
-    if message in ['hi', 'hello', 'start']:
+    if message in ['hi', 'hello', 'start', 'get_started']:  # Handle Get Started button
         send_message(sender_id, f"Hey there! Welcome to {BUSINESS_NAME}! 🚀 How can I help?",
                      quick_replies=[{"title": "Services", "payload": "services"},
                                     {"title": "FAQs", "payload": "faq"},
@@ -97,39 +97,49 @@ def process_message(sender_id, message, platform="meta"):
     elif message in ['services', 'service']:  # Handle variations in case or text
         send_message(sender_id, f"We offer automated chatbots for businesses! How can we assist you?",
                      quick_replies=[{"title": "Learn More", "payload": "learn_more"},
-                                    {"title": "Back to Menu", "payload": "start"}],
+                                    {"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message in ['learn_more', 'learn more']:  # Handle both payload and text input
         send_message(sender_id, f"Learn more about our services: We provide 24/7 customer support, inventory management, and scheduling solutions for businesses like {BUSINESS_NAME}. Visit {PRODUCT_CATALOG_LINK} for details or contact us at {SUPPORT_EMAIL}!",
-                     quick_replies=[{"title": "Back to Menu", "payload": "start"}],
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message in ['faq', 'faqs']:  # Handle variations in case or text
         send_message(sender_id, f"Here are some FAQs:\n1️⃣ What services do you offer?\n2️⃣ How much does it cost?\n3️⃣ Shipping info?",
                      quick_replies=[{"title": "Pricing", "payload": "pricing"},
                                     {"title": "Shipping", "payload": "shipping"},
                                     {"title": "Returns", "payload": "returns"},
-                                    {"title": "Back to Menu", "payload": "start"}],
+                                    {"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message in ['support', 'help']:  # Handle variations
         send_message(sender_id, "Let’s solve your issue! What’s the problem?",
                      quick_replies=[{"title": "Order Issue", "payload": "order_issue"},
                                     {"title": "Technical Issue", "payload": "tech_issue"},
-                                    {"title": "Other", "payload": "other_issue"}],
+                                    {"title": "Other", "payload": "other_issue"},
+                                    {"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message == 'sales':
         send_message(sender_id, "Interested in our products? What can I help with?",
                      quick_replies=[{"title": "Products", "payload": "products"},
                                     {"title": "Offers", "payload": "offers"},
-                                    {"title": "Lead Capture", "payload": "lead"}],
+                                    {"title": "Lead Capture", "payload": "lead"},
+                                    {"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message == 'contact':
-        send_message(sender_id, f"📧 Email: {SUPPORT_EMAIL}\n📞 Phone: {SUPPORT_PHONE}", platform=platform)
+        send_message(sender_id, f"📧 Email: {SUPPORT_EMAIL}\n📞 Phone: {SUPPORT_PHONE}",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     platform=platform)
     elif message in ['pricing', 'price']:  # Handle variations
-        send_message(sender_id, f"Our chatbot setup starts at {BASE_PRICE}. Subscription plans available.", platform=platform)
+        send_message(sender_id, f"Our chatbot setup starts at {BASE_PRICE}. Subscription plans available.",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     platform=platform)
     elif message in ['shipping', 'ship']:  # Handle variations
-        send_message(sender_id, f"Shipping takes {SHIPPING_DAYS} days. Free over {FREE_SHIPPING_THRESHOLD}!", platform=platform)
+        send_message(sender_id, f"Shipping takes {SHIPPING_DAYS} days. Free over {FREE_SHIPPING_THRESHOLD}!",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     platform=platform)
     elif message in ['returns', 'return']:  # Handle variations
-        send_message(sender_id, f"Returns accepted within {RETURN_POLICY_DAYS} days. Contact us for details.", platform=platform)
+        send_message(sender_id, f"Returns accepted within {RETURN_POLICY_DAYS} days. Contact us for details.",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     platform=platform)
     elif message == 'order_issue':
         send_message(sender_id, "Please provide your order number.", platform=platform)
         user_data[sender_id] = {"state": "waiting_order"}
@@ -137,9 +147,13 @@ def process_message(sender_id, message, platform="meta"):
         send_message(sender_id, "Describe your issue briefly.", platform=platform)
         user_data[sender_id] = {"state": "waiting_issue"}
     elif message == 'products':
-        send_message(sender_id, f"Check our products: {PRODUCT_CATALOG_LINK}", platform=platform)
+        send_message(sender_id, f"Check our products: {PRODUCT_CATALOG_LINK}",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     platform=platform)
     elif message == 'offers':
-        send_message(sender_id, f"Get 20% off with code {PROMO_CODE}!", platform=platform)
+        send_message(sender_id, f"Get 20% off with code {PROMO_CODE}!",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     platform=platform)
     elif message == 'lead':
         send_message(sender_id, "Interested in our services? Provide your info:\n1. Name\n2. Email\n3. Phone (optional)\n4. Company (optional)",
                      platform=platform)
@@ -148,7 +162,8 @@ def process_message(sender_id, message, platform="meta"):
         send_message(sender_id, "Which product would you like to check? (e.g., chatbot_basic, chatbot_pro)",
                      quick_replies=[{"title": "Basic Chatbot", "payload": "check_basic"},
                                     {"title": "Pro Chatbot", "payload": "check_pro"},
-                                    {"title": "Enterprise Chatbot", "payload": "check_enterprise"}],
+                                    {"title": "Enterprise Chatbot", "payload": "check_enterprise"},
+                                    {"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message in ['check_basic', 'check_pro', 'check_enterprise']:
         product_id = message.replace("check_", "")
@@ -157,9 +172,12 @@ def process_message(sender_id, message, platform="meta"):
             data = response.json()
             availability = "in stock" if data["available"] else "out of stock"
             send_message(sender_id, f"{data['product']}: {data['quantity']} available ({availability}), Price: {data['price']}",
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                          platform=platform)
         else:
-            send_message(sender_id, "Sorry, couldn’t check inventory. Try again later.", platform=platform)
+            send_message(sender_id, "Sorry, couldn’t check inventory. Try again later.",
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                         platform=platform)
     elif message == 'schedule':
         send_message(sender_id, "When would you like to schedule a consultation? Enter a date (YYYY-MM-DD).",
                      platform=platform)
@@ -171,14 +189,19 @@ def process_message(sender_id, message, platform="meta"):
             slots = response.json()["available_slots"]
             if slots:
                 send_message(sender_id, f"Available slots on {date}: {', '.join(slots)}. Pick a time (HH:MM).",
+                             quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                              platform=platform)
                 user_data[sender_id]["state"] = "waiting_schedule_time"
                 user_data[sender_id]["schedule_date"] = date
             else:
-                send_message(sender_id, "No slots available on that date. Try another.", platform=platform)
+                send_message(sender_id, "No slots available on that date. Try another.",
+                             quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                             platform=platform)
                 del user_data[sender_id]  # Clear user data if no slots available
         else:
-            send_message(sender_id, "Invalid date or error. Use YYYY-MM-DD.", platform=platform)
+            send_message(sender_id, "Invalid date or error. Use YYYY-MM-DD.",
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                         platform=platform)
             del user_data[sender_id]  # Clear user data on error
     elif message and sender_id in user_data and user_data[sender_id]["state"] == "waiting_schedule_time":
         time = message
@@ -191,20 +214,22 @@ def process_message(sender_id, message, platform="meta"):
         if response.status_code == 201:
             data = response.json()
             send_message(sender_id, f"Appointment booked for {data['details']['date']}. Anything else?",
-                         quick_replies=[{"title": "Main Menu", "payload": "start"}],
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                          platform=platform)
         else:
             send_message(sender_id, "Couldn’t book. Slot unavailable or invalid time. Try again.",
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                          platform=platform)
         del user_data[sender_id]  # Clear user data after booking
     elif message in ['cancel_schedule', 'cancel']:  # Handle variations
         response = requests.delete(f"{SCHEDULING_URL}/scheduling/{sender_id}")
         if response.status_code == 200:
             send_message(sender_id, "Appointment canceled. Anything else?",
-                         quick_replies=[{"title": "Main Menu", "payload": "start"}],
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                          platform=platform)
         else:
             send_message(sender_id, "No appointment found to cancel. Try again.",
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                          platform=platform)
         if sender_id in user_data:
             del user_data[sender_id]  # Clear user data after cancellation
@@ -214,21 +239,23 @@ def process_message(sender_id, message, platform="meta"):
                 user_data[sender_id]["order_number"] = message
                 send_message(sender_id, "Thanks! How urgent is this? (Urgent/Not Urgent)",
                              quick_replies=[{"title": "Urgent", "payload": "urgent"},
-                                            {"title": "Not Urgent", "payload": "not_urgent"}],
+                                            {"title": "Not Urgent", "payload": "not_urgent"},
+                                            {"title": "Back to Main Menu", "payload": "start"}],
                              platform=platform)
                 user_data[sender_id]["state"] = "waiting_urgency"
             elif user_data[sender_id]["state"] == "waiting_issue":
                 user_data[sender_id]["issue"] = message
                 send_message(sender_id, "Thanks! How urgent is this? (Urgent/Not Urgent)",
                              quick_replies=[{"title": "Urgent", "payload": "urgent"},
-                                            {"title": "Not Urgent", "payload": "not_urgent"}],
+                                            {"title": "Not Urgent", "payload": "not_urgent"},
+                                            {"title": "Back to Main Menu", "payload": "start"}],
                              platform=platform)
                 user_data[sender_id]["state"] = "waiting_urgency"
             elif user_data[sender_id]["state"] == "waiting_urgency":
                 urgency = message
                 order_or_issue = user_data[sender_id].get("order_number", user_data[sender_id].get("issue", ""))
                 send_message(sender_id, f"A team member will follow up soon on your {('order' if 'order_number' in user_data[sender_id] else 'issue')} ({urgency}). Anything else?",
-                             quick_replies=[{"title": "Main Menu", "payload": "start"}],
+                             quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                              platform=platform)
                 del user_data[sender_id]  # Clear user data after urgency response
             elif user_data[sender_id]["state"] == "waiting_lead":
@@ -243,7 +270,7 @@ def process_message(sender_id, message, platform="meta"):
                 if len(parts) >= 4:
                     lead_data["company"] = parts[3].strip() if parts[3].strip() else None
                 send_message(sender_id, "Thanks for your info! We’ll reach out soon. Anything else?",
-                             quick_replies=[{"title": "Main Menu", "payload": "start"}],
+                             quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                              platform=platform)
                 del user_data[sender_id]  # Clear user data after lead capture
         else:
