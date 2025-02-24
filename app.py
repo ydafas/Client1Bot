@@ -85,6 +85,7 @@ def wechat_webhook():
 
 # ✅ Process Incoming Messages (Multi-Platform Compatible)
 def process_message(sender_id, message, platform="meta"):
+    # Handle non-stateful messages (quick replies, standalone commands) first
     if message in ['hi', 'hello', 'start']:
         send_message(sender_id, f"Hey there! Welcome to {BUSINESS_NAME}! 🚀 How can I help?",
                      quick_replies=[{"title": "Services", "payload": "services"},
@@ -162,7 +163,7 @@ def process_message(sender_id, message, platform="meta"):
     elif message == 'schedule':
         send_message(sender_id, "When would you like to schedule a consultation? Enter a date (YYYY-MM-DD).",
                      platform=platform)
-        user_data[sender_id] = {"state": "waiting_schedule_date"}
+        user_data[sender_id] = {"state": "waiting_schedule_date", "schedule_date": None}
     elif message and sender_id in user_data and user_data[sender_id]["state"] == "waiting_schedule_date":
         date = message
         response = requests.get(f"{SCHEDULING_URL}/scheduling/available/{date}")
@@ -175,10 +176,10 @@ def process_message(sender_id, message, platform="meta"):
                 user_data[sender_id]["schedule_date"] = date
             else:
                 send_message(sender_id, "No slots available on that date. Try another.", platform=platform)
-                user_data[sender_id].pop("state", None)
+                del user_data[sender_id]  # Clear user data if no slots available
         else:
             send_message(sender_id, "Invalid date or error. Use YYYY-MM-DD.", platform=platform)
-            user_data[sender_id].pop("state", None)
+            del user_data[sender_id]  # Clear user data on error
     elif message and sender_id in user_data and user_data[sender_id]["state"] == "waiting_schedule_time":
         time = message
         response = requests.post(f"{SCHEDULING_URL}/scheduling", json={
@@ -195,8 +196,7 @@ def process_message(sender_id, message, platform="meta"):
         else:
             send_message(sender_id, "Couldn’t book. Slot unavailable or invalid time. Try again.",
                          platform=platform)
-        user_data[sender_id].pop("state", None)
-        user_data[sender_id].pop("schedule_date", None)
+        del user_data[sender_id]  # Clear user data after booking
     elif message == 'cancel_schedule':
         response = requests.delete(f"{SCHEDULING_URL}/scheduling/{sender_id}")
         if response.status_code == 200:
@@ -206,6 +206,8 @@ def process_message(sender_id, message, platform="meta"):
         else:
             send_message(sender_id, "No appointment found to cancel. Try again.",
                          platform=platform)
+        if sender_id in user_data:
+            del user_data[sender_id]  # Clear user data after cancellation
     else:
         if sender_id in user_data:
             if user_data[sender_id]["state"] == "waiting_order":
@@ -228,7 +230,7 @@ def process_message(sender_id, message, platform="meta"):
                 send_message(sender_id, f"A team member will follow up soon on your {('order' if 'order_number' in user_data[sender_id] else 'issue')} ({urgency}). Anything else?",
                              quick_replies=[{"title": "Main Menu", "payload": "start"}],
                              platform=platform)
-                user_data[sender_id].pop("state", None)
+                del user_data[sender_id]  # Clear user data after urgency response
             elif user_data[sender_id]["state"] == "waiting_lead":
                 parts = message.split("\n")
                 lead_data = user_data[sender_id]["lead_data"]
@@ -243,16 +245,67 @@ def process_message(sender_id, message, platform="meta"):
                 send_message(sender_id, "Thanks for your info! We’ll reach out soon. Anything else?",
                              quick_replies=[{"title": "Main Menu", "payload": "start"}],
                              platform=platform)
-                user_data[sender_id].pop("state", None)
+                del user_data[sender_id]  # Clear user data after lead capture
         else:
             send_message(sender_id, "Sorry, I didn’t understand that. Try selecting an option or type 'start'.",
                          quick_replies=[{"title": "Main Menu", "payload": "start"}],
                          platform=platform)
-#
+
 # ✅ Send Messages (Multi-Platform Compatible)
 def send_message(sender_id, text, quick_replies=None, platform="meta"):
     if platform == "meta":
         if not FB_PAGE_TOKEN:
             logger.warning("FB_PAGE_TOKEN not set. Skipping Meta message.")
             return
-        url = f"https://graph.facebook.com/v20.0/me/messages?access_token={FB_PAGE_TOKEN}"  # Updated to
+        url = f"https://graph.facebook.com/v20.0/me/messages?access_token={FB_PAGE_TOKEN}"  # Updated to v20.0 (current as of Feb 2025)
+        payload = {
+            "recipient": {"id": sender_id},
+            "message": {"text": text}
+        }
+
+        if quick_replies:
+            payload["message"]["quick_replies"] = [
+                {"content_type": "text", "title": qr["title"], "payload": qr["payload"]} for qr in quick_replies
+            ]
+
+        headers = {"Content-Type": "application/json"}
+        try:
+            response = requests.post(url, json=payload, headers=headers)
+            logger.info("🔹 Meta API Response: %s", response.json())
+        except requests.exceptions.RequestException as e:
+            logger.error("🔹 Failed to send Meta message: %s", str(e))
+            if response.status_code == 400 and "You cannot send messages to this id" in str(response.json()):
+                logger.warning("Skipping message to invalid sender_id: %s", sender_id)
+    elif platform == "wechat":
+        if not WECHAT_APP_ID or not WECHAT_APP_SECRET:
+            logger.warning("WeChat credentials not set. Skipping WeChat message.")
+            return
+        url = f"https://api.wechat.com/cgi-bin/message/custom/send?access_token={get_wechat_access_token()}"
+        payload = {
+            "touser": sender_id,
+            "msgtype": "text",
+            "text": {"content": text}
+        }
+        if quick_replies:
+            # WeChat doesn’t natively support quick replies; use buttons or menus
+            payload["msgtype"] = "news"  # Example; adjust for buttons
+            payload["news"] = {"articles": [{"title": qr["title"], "url": "https://your.link"} for qr in quick_replies]}
+        headers = {"Content-Type": "application/json"}
+        try:
+            response = requests.post(url, json=payload, headers=headers)
+            logger.info("🔹 WeChat API Response: %s", response.json())
+        except requests.exceptions.RequestException as e:
+            logger.error("🔹 Failed to send WeChat message: %s", str(e))
+
+# ✅ Helper Function for WeChat
+def get_wechat_access_token():
+    if not WECHAT_APP_ID or not WECHAT_APP_SECRET:
+        raise ValueError("WeChat credentials not set")
+    url = f"https://api.wechat.com/cgi-bin/token?grant_type=client_credential&appid={WECHAT_APP_ID}&secret={WECHAT_APP_SECRET}"
+    response = requests.get(url)
+    return response.json()["access_token"]
+
+# ✅ Run Flask Server for Local Testing or Render Deployment
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 10000))  # Default for local testing; Render overrides
+    app.run(host='0.0.0.0', port=port, debug=True)
