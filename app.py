@@ -1,17 +1,22 @@
 from flask import Flask, request, jsonify
 import requests
 import os
+import logging
 
 app = Flask(__name__)
 
+# 🔹 Set up logging for Render
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # 🔹 Set your credentials (Use environment variables or local defaults for testing)
-FB_PAGE_TOKEN = os.environ.get("FB_PAGE_TOKEN", "")  # Leave empty for testing; add after verification
+FB_PAGE_TOKEN = os.environ.get("FB_PAGE_TOKEN", "")  # Use your generated token; empty for testing without Meta
 VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "secure_token")  # Default for testing
 WECHAT_APP_ID = os.environ.get("WECHAT_APP_ID", "")  # Leave empty if not using WeChat
 WECHAT_APP_SECRET = os.environ.get("WECHAT_APP_SECRET", "")  # Leave empty if not using WeChat
 
 # 🔹 Configurable Business Variables (Use environment variables or local defaults)
-BUSINESS_NAME = "Client1 Inc"
+BUSINESS_NAME = os.environ.get("BUSINESS_NAME", "Automated Business")
 SUPPORT_EMAIL = os.environ.get("SUPPORT_EMAIL", "support@automatedbusiness.com")
 SUPPORT_PHONE = os.environ.get("SUPPORT_PHONE", "(123) 456-7890")
 BASE_PRICE = os.environ.get("BASE_PRICE", "$199")
@@ -25,8 +30,8 @@ PRODUCT_CATALOG_LINK = os.environ.get("PRODUCT_CATALOG_LINK", "https://automated
 user_data = {}  # Dictionary to store user info (e.g., name, email, order)
 
 # 🔹 Local Testing URLs (Update for Render deployment or client-specific instances)
-INVENTORY_URL = os.environ.get("INVENTORY_URL", "http://localhost:5001")  # Default for local testing
-SCHEDULING_URL = os.environ.get("SCHEDULING_URL", "http://localhost:5002")  # Default for local testing
+INVENTORY_URL = os.environ.get("INVENTORY_URL", "http://localhost:10001")  # Default for local testing
+SCHEDULING_URL = os.environ.get("SCHEDULING_URL", "http://localhost:10002")  # Default for local testing
 
 # ✅ Webhooks for Multiple Platforms (Meta: Facebook, Instagram, Threads)
 @app.route('/webhook', methods=['GET', 'POST'])
@@ -41,7 +46,7 @@ def fb_webhook():
 
     elif request.method == 'POST':  # Handle messages
         data = request.json
-        print("🔹 Received Meta Webhook Data:", data)
+        logger.info("🔹 Received Meta Webhook Data: %s", data)
 
         if 'entry' in data:
             for entry in data['entry']:
@@ -51,6 +56,17 @@ def fb_webhook():
                             sender_id = messaging_event['sender']['id']
                             message_text = messaging_event['message'].get('text', '').lower()
                             process_message(sender_id, message_text, platform="meta")
+                        elif 'optin' in messaging_event:  # Handle messaging_optins for testing
+                            sender_id = messaging_event['sender']['id']
+                            logger.info("🔹 Received messaging_optins for sender_id: %s", sender_id)
+                            if FB_PAGE_TOKEN:
+                                send_message(sender_id, f"Welcome to {BUSINESS_NAME}! You’ve opted into messaging. How can I help?",
+                                             quick_replies=[{"title": "Start", "payload": "start"}],
+                                             platform="meta")
+                        elif 'postback' in messaging_event:  # Handle postbacks (e.g., quick replies)
+                            sender_id = messaging_event['sender']['id']
+                            payload = messaging_event['postback'].get('payload', '').lower()
+                            process_message(sender_id, payload, platform="meta")
 
         return "EVENT_RECEIVED", 200
 
@@ -58,6 +74,7 @@ def fb_webhook():
 @app.route('/wechat', methods=['POST'])
 def wechat_webhook():
     if not WECHAT_APP_ID or not WECHAT_APP_SECRET:
+        logger.warning("WeChat credentials not set. Skipping WeChat message.")
         return "WeChat not configured", 400
 
     data = request.get_data(as_text=True)  # WeChat sends XML, parse it if needed
@@ -232,8 +249,8 @@ def process_message(sender_id, message, platform="meta"):
 def send_message(sender_id, text, quick_replies=None, platform="meta"):
     if platform == "meta":  # Facebook/Instagram/Threads
         if not FB_PAGE_TOKEN:
-            print("Warning: FB_PAGE_TOKEN not set. Skipping Meta message.")
-            return  # Skip sending if no token (for testing without Facebook)
+            logger.warning("FB_PAGE_TOKEN not set. Skipping Meta message.")
+            return  # Skip sending if no token (for testing without Meta)
         url = f"https://graph.facebook.com/v20.0/me/messages?access_token={FB_PAGE_TOKEN}"  # Updated to v20.0 (current as of Feb 2025)
         payload = {
             "recipient": {"id": sender_id},
@@ -247,10 +264,10 @@ def send_message(sender_id, text, quick_replies=None, platform="meta"):
 
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, json=payload, headers=headers)
-        print("🔹 Meta API Response:", response.json())
+        logger.info("🔹 Meta API Response: %s", response.json())
     elif platform == "wechat":  # WeChat
         if not WECHAT_APP_ID or not WECHAT_APP_SECRET:
-            print("Warning: WeChat credentials not set. Skipping WeChat message.")
+            logger.warning("WeChat credentials not set. Skipping WeChat message.")
             return  # Skip sending if no credentials
         url = f"https://api.wechat.com/cgi-bin/message/custom/send?access_token={get_wechat_access_token()}"
         payload = {
@@ -264,7 +281,7 @@ def send_message(sender_id, text, quick_replies=None, platform="meta"):
             payload["news"] = {"articles": [{"title": qr["title"], "url": "https://your.link"} for qr in quick_replies]}
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, json=payload, headers=headers)
-        print("🔹 WeChat API Response:", response.json())
+        logger.info("🔹 WeChat API Response: %s", response.json())
 
 # ✅ Helper Function for WeChat
 def get_wechat_access_token():
@@ -276,4 +293,5 @@ def get_wechat_access_token():
 
 # ✅ Run Flask Server for Local Testing or Render Deployment
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000, debug=True)  # Render uses port 10000 by default; adjust if needed
+    port = int(os.environ.get("PORT", 10000))  # Default for local testing; Render overrides
+    app.run(host='0.0.0.0', port=port, debug=True)
