@@ -248,7 +248,7 @@ def process_message(sender_id, message, platform="meta"):
             send_message(sender_id, "Sorry, I didn’t understand that. Try selecting an option or type 'start'.",
                          quick_replies=[{"title": "Main Menu", "payload": "start"}],
                          platform=platform)
-
+#
 # ✅ Send Messages (Multi-Platform Compatible)
 def send_message(sender_id, text, quick_replies=None, platform="meta"):
     if platform == "meta":
