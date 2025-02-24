@@ -54,7 +54,7 @@ def fb_webhook():
                     for messaging_event in entry['messaging']:
                         if 'message' in messaging_event:
                             sender_id = messaging_event['sender']['id']
-                            message_text = messaging_event['message'].get('text', '').lower()
+                            message_text = messaging_event['message'].get('text', '').lower().strip()
                             process_message(sender_id, message_text, platform="meta")
                         elif 'optin' in messaging_event:  # Handle messaging_optins for testing
                             sender_id = messaging_event['sender']['id']
@@ -65,7 +65,7 @@ def fb_webhook():
                                              platform="meta")
                         elif 'postback' in messaging_event:  # Handle postbacks (e.g., quick replies)
                             sender_id = messaging_event['sender']['id']
-                            payload = messaging_event['postback'].get('payload', '').lower()
+                            payload = messaging_event['postback'].get('payload', '').lower().strip()
                             process_message(sender_id, payload, platform="meta")
 
         return "EVENT_RECEIVED", 200
@@ -79,7 +79,7 @@ def wechat_webhook():
 
     data = request.get_data(as_text=True)  # WeChat sends XML, parse it if needed
     sender_id = "wechat_user"  # Placeholder; parse from XML
-    message_text = data.lower()  # Simplify for demo; use XML parsing in production
+    message_text = data.lower().strip()  # Simplify for demo; use XML parsing in production
     process_message(sender_id, message_text, platform="wechat")
     return "<xml><ToUserName><![CDATA[user]]></ToUserName><FromUserName><![CDATA[bot]]></FromUserName><MsgType><![CDATA[text]]></MsgType><Content><![CDATA[Message received!]]></Content></xml>"
 
@@ -94,23 +94,23 @@ def process_message(sender_id, message, platform="meta"):
                                     {"title": "Sales", "payload": "sales"},
                                     {"title": "Contact Us", "payload": "contact"}],
                      platform=platform)
-    elif message == 'services':
+    elif message in ['services', 'service']:  # Handle variations in case or text
         send_message(sender_id, f"We offer automated chatbots for businesses! How can we assist you?",
                      quick_replies=[{"title": "Learn More", "payload": "learn_more"},
                                     {"title": "Back to Menu", "payload": "start"}],
                      platform=platform)
-    elif message == 'learn_more':
+    elif message in ['learn_more', 'learn more']:  # Handle both payload and text input
         send_message(sender_id, f"Learn more about our services: We provide 24/7 customer support, inventory management, and scheduling solutions for businesses like {BUSINESS_NAME}. Visit {PRODUCT_CATALOG_LINK} for details or contact us at {SUPPORT_EMAIL}!",
                      quick_replies=[{"title": "Back to Menu", "payload": "start"}],
                      platform=platform)
-    elif message == 'faq':
+    elif message in ['faq', 'faqs']:  # Handle variations in case or text
         send_message(sender_id, f"Here are some FAQs:\n1️⃣ What services do you offer?\n2️⃣ How much does it cost?\n3️⃣ Shipping info?",
                      quick_replies=[{"title": "Pricing", "payload": "pricing"},
                                     {"title": "Shipping", "payload": "shipping"},
                                     {"title": "Returns", "payload": "returns"},
                                     {"title": "Back to Menu", "payload": "start"}],
                      platform=platform)
-    elif message == 'support':
+    elif message in ['support', 'help']:  # Handle variations
         send_message(sender_id, "Let’s solve your issue! What’s the problem?",
                      quick_replies=[{"title": "Order Issue", "payload": "order_issue"},
                                     {"title": "Technical Issue", "payload": "tech_issue"},
@@ -124,16 +124,16 @@ def process_message(sender_id, message, platform="meta"):
                      platform=platform)
     elif message == 'contact':
         send_message(sender_id, f"📧 Email: {SUPPORT_EMAIL}\n📞 Phone: {SUPPORT_PHONE}", platform=platform)
-    elif message == 'pricing':
+    elif message in ['pricing', 'price']:  # Handle variations
         send_message(sender_id, f"Our chatbot setup starts at {BASE_PRICE}. Subscription plans available.", platform=platform)
-    elif message == 'shipping':
+    elif message in ['shipping', 'ship']:  # Handle variations
         send_message(sender_id, f"Shipping takes {SHIPPING_DAYS} days. Free over {FREE_SHIPPING_THRESHOLD}!", platform=platform)
-    elif message == 'returns':
+    elif message in ['returns', 'return']:  # Handle variations
         send_message(sender_id, f"Returns accepted within {RETURN_POLICY_DAYS} days. Contact us for details.", platform=platform)
     elif message == 'order_issue':
         send_message(sender_id, "Please provide your order number.", platform=platform)
         user_data[sender_id] = {"state": "waiting_order"}
-    elif message == 'tech_issue' or message == 'other_issue':
+    elif message in ['tech_issue', 'technical_issue', 'other_issue']:  # Handle variations
         send_message(sender_id, "Describe your issue briefly.", platform=platform)
         user_data[sender_id] = {"state": "waiting_issue"}
     elif message == 'products':
@@ -197,7 +197,7 @@ def process_message(sender_id, message, platform="meta"):
             send_message(sender_id, "Couldn’t book. Slot unavailable or invalid time. Try again.",
                          platform=platform)
         del user_data[sender_id]  # Clear user data after booking
-    elif message == 'cancel_schedule':
+    elif message in ['cancel_schedule', 'cancel']:  # Handle variations
         response = requests.delete(f"{SCHEDULING_URL}/scheduling/{sender_id}")
         if response.status_code == 200:
             send_message(sender_id, "Appointment canceled. Anything else?",
@@ -248,7 +248,11 @@ def process_message(sender_id, message, platform="meta"):
                 del user_data[sender_id]  # Clear user data after lead capture
         else:
             send_message(sender_id, "Sorry, I didn’t understand that. Try selecting an option or type 'start'.",
-                         quick_replies=[{"title": "Main Menu", "payload": "start"}],
+                         quick_replies=[{"title": "Services", "payload": "services"},
+                                        {"title": "FAQs", "payload": "faq"},
+                                        {"title": "Support", "payload": "support"},
+                                        {"title": "Sales", "payload": "sales"},
+                                        {"title": "Contact Us", "payload": "contact"}],
                          platform=platform)
 
 # ✅ Send Messages (Multi-Platform Compatible)
