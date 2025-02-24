@@ -55,6 +55,7 @@ def fb_webhook():
                         if 'message' in messaging_event:
                             sender_id = messaging_event['sender']['id']
                             message_text = messaging_event['message'].get('text', '').lower().strip()
+                            logger.info("🔹 Processing message text: %s for sender_id: %s", message_text, sender_id)
                             process_message(sender_id, message_text, platform="meta")
                         elif 'optin' in messaging_event:  # Handle messaging_optins for testing
                             sender_id = messaging_event['sender']['id']
@@ -86,6 +87,11 @@ def wechat_webhook():
 
 # ✅ Process Incoming Messages (Multi-Platform Compatible)
 def process_message(sender_id, message, platform="meta"):
+    # Clear state if processing a reset command to prevent interference
+    if message in ['start', 'get_started']:
+        if sender_id in user_data:
+            del user_data[sender_id]  # Reset state for new interactions
+
     # Handle non-stateful messages (quick replies, standalone commands) first
     if message in ['hi', 'hello', 'start', 'get_started']:  # Handle Get Started button
         send_message(sender_id, f"Hey there! Welcome to {BUSINESS_NAME}! 🚀 How can I help?",
@@ -211,7 +217,7 @@ def process_message(sender_id, message, platform="meta"):
         else:
             send_message(sender_id, "Invalid date or error. Use YYYY-MM-DD.",
                          quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
-                             platform=platform)
+                         platform=platform)
             del user_data[sender_id]  # Clear user data on error
     elif message and sender_id in user_data and user_data[sender_id]["state"] == "waiting_schedule_time":
         time = message
