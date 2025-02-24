@@ -66,6 +66,7 @@ def fb_webhook():
                         elif 'postback' in messaging_event:  # Handle postbacks (e.g., quick replies, Get Started)
                             sender_id = messaging_event['sender']['id']
                             payload = messaging_event['postback'].get('payload', '').lower().strip()
+                            logger.info("🔹 Processing postback payload: %s for sender_id: %s", payload, sender_id)
                             process_message(sender_id, payload, platform="meta")
 
         return "EVENT_RECEIVED", 200
@@ -101,8 +102,7 @@ def process_message(sender_id, message, platform="meta"):
                      platform=platform)
     elif message in ['learn_more', 'learn more']:  # Handle both payload and text input
         send_message(sender_id, f"Learn more about our services: We provide 24/7 customer support, inventory management, and scheduling solutions for businesses like {BUSINESS_NAME}. Visit {PRODUCT_CATALOG_LINK} for details or contact us at {SUPPORT_EMAIL}!",
-                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"},
-                                    {"title": "Back to FAQs", "payload": "faq"}],
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message in ['faq', 'faqs']:  # Handle variations in case or text
         send_message(sender_id, f"Here are some FAQs:\n1. What services do you offer?\n2. How much does it cost?\n3. Shipping info?",
@@ -134,10 +134,14 @@ def process_message(sender_id, message, platform="meta"):
                                     {"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message in ['order_issue', 'order issue']:  # Handle variations for Order Issue
-        send_message(sender_id, "Please provide your order number.", platform=platform)
+        send_message(sender_id, "Please provide your order number.",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     platform=platform)
         user_data[sender_id] = {"state": "waiting_order"}
     elif message in ['tech_issue', 'technical_issue', 'other_issue']:  # Handle variations
-        send_message(sender_id, "Describe your issue briefly.", platform=platform)
+        send_message(sender_id, "Describe your issue briefly.",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     platform=platform)
         user_data[sender_id] = {"state": "waiting_issue"}
     elif message == 'sales':
         send_message(sender_id, "Interested in our products? What can I help with?",
@@ -160,6 +164,7 @@ def process_message(sender_id, message, platform="meta"):
                      platform=platform)
     elif message == 'lead':
         send_message(sender_id, "Interested in our services? Provide your info:\n1. Name\n2. Email\n3. Phone (optional)\n4. Company (optional)",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
         user_data[sender_id] = {"state": "waiting_lead", "lead_data": {}}
     elif message == 'inventory':
@@ -206,7 +211,7 @@ def process_message(sender_id, message, platform="meta"):
         else:
             send_message(sender_id, "Invalid date or error. Use YYYY-MM-DD.",
                          quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
-                         platform=platform)
+                             platform=platform)
             del user_data[sender_id]  # Clear user data on error
     elif message and sender_id in user_data and user_data[sender_id]["state"] == "waiting_schedule_time":
         time = message
