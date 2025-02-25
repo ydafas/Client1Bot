@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="03989493-df59-4dcc-9629-5c553cbfe12e" name="Changes" comment="added process message">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="03989493-df59-4dcc-9629-5c553cbfe12e" name="Changes" comment="git commit -m &quot;Removed sensitive file&quot;&#10;git commit -m &quot;Removed sensitive file&quot;">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -214,7 +212,23 @@
       <option name="project" value="LOCAL" />
       <updated>1740445119807</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="git commit -m &quot;Removed sensitive file&quot;&#10;git commit -m &quot;Removed sensitive file&quot;">
+      <option name="closed" value="true" />
+      <created>1740446368216</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1740446368216</updated>
+    </task>
+    <task id="LOCAL-00020" summary="git commit -m &quot;Removed sensitive file&quot;&#10;git commit -m &quot;Removed sensitive file&quot;">
+      <option name="closed" value="true" />
+      <created>1740446451392</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1740446451392</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -232,6 +246,7 @@
     <MESSAGE value="update app.py for render ports / meta integration" />
     <MESSAGE value="fixed key errors" />
     <MESSAGE value="added process message" />
-    <option name="LAST_COMMIT_MESSAGE" value="added process message" />
+    <MESSAGE value="git commit -m &quot;Removed sensitive file&quot;&#10;git commit -m &quot;Removed sensitive file&quot;" />
+    <option name="LAST_COMMIT_MESSAGE" value="git commit -m &quot;Removed sensitive file&quot;&#10;git commit -m &quot;Removed sensitive file&quot;" />
   </component>
 </project>
