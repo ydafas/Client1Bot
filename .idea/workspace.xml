@@ -1,15 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="03989493-df59-4dcc-9629-5c553cbfe12e" name="Changes" comment="" />
+    <list default="true" id="03989493-df59-4dcc-9629-5c553cbfe12e" name="Changes" comment="added process message">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
-}]]></component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;ydafas&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/ydafas/Client1Bot.git&quot;,
+    &quot;accountId&quot;: &quot;c1ce0852-0706-4152-8f51-ee03cccc21a0&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="2tV6cbEsAavTLWI3hTKZaTbCqSn" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -18,9 +40,20 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true"
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "C:/Users/thoma/PycharmProjects/Client1Bot"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\thoma\PycharmProjects\Client1Bot" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\thoma\PycharmProjects\Client1Bot" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -37,6 +70,168 @@
       <option name="presentableId" value="Default" />
       <updated>1740424974282</updated>
     </task>
+    <task id="LOCAL-00001" summary="update app.py for render ports / meta integration">
+      <option name="closed" value="true" />
+      <created>1740427446099</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1740427446099</updated>
+    </task>
+    <task id="LOCAL-00002" summary="update app.py for render ports / meta integration">
+      <option name="closed" value="true" />
+      <created>1740438760240</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1740438760240</updated>
+    </task>
+    <task id="LOCAL-00003" summary="fixed key errors">
+      <option name="closed" value="true" />
+      <created>1740439252893</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1740439252893</updated>
+    </task>
+    <task id="LOCAL-00004" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740439472271</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1740439472271</updated>
+    </task>
+    <task id="LOCAL-00005" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740439525934</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1740439525934</updated>
+    </task>
+    <task id="LOCAL-00006" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740439784892</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1740439784892</updated>
+    </task>
+    <task id="LOCAL-00007" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740440097073</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1740440097073</updated>
+    </task>
+    <task id="LOCAL-00008" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740440403785</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1740440403785</updated>
+    </task>
+    <task id="LOCAL-00009" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740440811838</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1740440811838</updated>
+    </task>
+    <task id="LOCAL-00010" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740441099325</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1740441099325</updated>
+    </task>
+    <task id="LOCAL-00011" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740441324602</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1740441324602</updated>
+    </task>
+    <task id="LOCAL-00012" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740441646990</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1740441646990</updated>
+    </task>
+    <task id="LOCAL-00013" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740442501583</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1740442501583</updated>
+    </task>
+    <task id="LOCAL-00014" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740442837853</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1740442837853</updated>
+    </task>
+    <task id="LOCAL-00015" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740443180759</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1740443180759</updated>
+    </task>
+    <task id="LOCAL-00016" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740444597383</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1740444597383</updated>
+    </task>
+    <task id="LOCAL-00017" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740445026121</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1740445026121</updated>
+    </task>
+    <task id="LOCAL-00018" summary="added process message">
+      <option name="closed" value="true" />
+      <created>1740445119807</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1740445119807</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="update app.py for render ports / meta integration" />
+    <MESSAGE value="fixed key errors" />
+    <MESSAGE value="added process message" />
+    <option name="LAST_COMMIT_MESSAGE" value="added process message" />
   </component>
 </project>
