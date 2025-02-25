@@ -52,21 +52,25 @@ def fb_webhook():
             for entry in data['entry']:
                 if 'messaging' in entry:
                     for messaging_event in entry['messaging']:
+                        sender_id = messaging_event['sender']['id']
                         if 'message' in messaging_event:
-                            sender_id = messaging_event['sender']['id']
-                            message_text = messaging_event['message'].get('text', '').lower().strip()
-                            logger.info("🔹 Processing message text: %s for sender_id: %s", message_text, sender_id)
-                            process_message(sender_id, message_text, platform="meta")
+                            if 'quick_reply' in messaging_event['message']:
+                                # Handle quick reply payload explicitly
+                                payload = messaging_event['message']['quick_reply'].get('payload', '').lower().strip()
+                                logger.info("🔹 Processing quick reply payload: %s for sender_id: %s (text: %s)", payload, sender_id, messaging_event['message'].get('text', ''))
+                                process_message(sender_id, payload, platform="meta")  # Use payload for quick replies
+                            else:
+                                message_text = messaging_event['message'].get('text', '').lower().strip()
+                                logger.info("🔹 Processing message text: %s for sender_id: %s", message_text, sender_id)
+                                process_message(sender_id, message_text, platform="meta")
                         elif 'optin' in messaging_event:  # Handle messaging_optins for testing
-                            sender_id = messaging_event['sender']['id']
                             logger.info("🔹 Received messaging_optins for sender_id: %s", sender_id)
                             if FB_PAGE_TOKEN and 'payload' in messaging_event['optin'] and messaging_event['optin']['payload'].lower().strip() != 'start':
                                 # Only send subscription message for actual opt-in payloads, not 'start'
                                 send_message(sender_id, f"Welcome to {BUSINESS_NAME}! You’ve opted into messaging. How can I help?",
                                              quick_replies=[{"title": "Get Started", "payload": "get_started"}],
                                              platform="meta")
-                        elif 'postback' in messaging_event:  # Handle postbacks (e.g., quick replies, Get Started)
-                            sender_id = messaging_event['sender']['id']
+                        elif 'postback' in messaging_event:  # Handle postbacks (e.g., Get Started, other buttons)
                             payload = messaging_event['postback'].get('payload', '').lower().strip()
                             logger.info("🔹 Processing postback payload (raw): %s for sender_id: %s", messaging_event['postback'].get('payload', ''), sender_id)
                             logger.info("🔹 Processing postback payload (normalized): %s for sender_id: %s", payload, sender_id)
@@ -90,12 +94,12 @@ def wechat_webhook():
 # ✅ Process Incoming Messages (Multi-Platform Compatible)
 def process_message(sender_id, message, platform="meta"):
     # Clear state if processing a reset command to prevent interference
-    if message in ['start', 'get_started', 'welcome_message', 'back to main menu']:  # Added 'welcome_message' for Get Started
+    if message in ['start', 'get_started', 'welcome_message', 'back to main menu']:
         if sender_id in user_data:
             del user_data[sender_id]  # Reset state for new interactions
 
     # Handle non-stateful messages (quick replies, standalone commands) first
-    if message in ['hi', 'hello', 'start', 'get_started', 'welcome_message']:  # Added 'welcome_message' for Get Started
+    if message in ['hi', 'hello', 'start', 'get_started', 'welcome_message']:  # Handle Get Started button and variations
         send_message(sender_id, f"Hey there! Welcome to {BUSINESS_NAME}! 🚀 How can I help?",
                      quick_replies=[{"title": "Services", "payload": "services"},
                                     {"title": "FAQs", "payload": "faq"},
