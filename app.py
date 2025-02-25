@@ -24,7 +24,7 @@ WECHAT_APP_ID = os.environ.get("WECHAT_APP_ID", "")
 WECHAT_APP_SECRET = os.environ.get("WECHAT_APP_SECRET", "")
 
 # Business Variables (Configurable via environment variables)
-BUSINESS_NAME = os.environ.get("BUSINESS_NAME", "Client1 Inc")
+BUSINESS_NAME = os.environ.get("BUSINESS_NAME", "Two-Step Automation")
 SUPPORT_EMAIL = os.environ.get("SUPPORT_EMAIL", "support@automatedbusiness.com")
 SUPPORT_PHONE = os.environ.get("SUPPORT_PHONE", "(123) 456-7890")
 BASE_PRICE = os.environ.get("BASE_PRICE", "$199")
@@ -50,7 +50,6 @@ REQUIRED_PERMISSIONS = [
     "pages_show_list",
     "pages_manage_metadata",
     "pages_messaging",
-    "business_management",
     "pages_read_engagement"
 ]
 
@@ -293,31 +292,36 @@ def process_message(sender_id, message, platform="meta"):
                          quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                          platform=platform)
         del user_data[sender_id]
-    # New Functionality Using Added Permissions
+
+    # Reverted 'page_info' branch (original version)
     elif message == 'page_info':
         if verify_page_token():
-            url = f"https://graph.facebook.com/v20.0/{PAGE_ID}?fields=name,about,posts{{message,created_time}}&access_token={FB_PAGE_TOKEN}"
+            # Use the PAGE_ID directly since we have a Page Access Token
+            url = f"https://graph.facebook.com/v20.0/{PAGE_ID}?fields=name,about&access_token={FB_PAGE_TOKEN}"
             try:
                 response = requests.get(url)
                 if response.status_code == 200:
                     page_data = response.json()
                     page_name = page_data.get("name", "Unknown Page")
                     page_about = page_data.get("about", "No description available.")
-                    posts = page_data.get("posts", {}).get("data", [])
-                    post_info = posts[0]["message"] + " (Posted: " + posts[0][
-                        "created_time"] + ")" if posts else "No recent posts."
                     send_message(sender_id,
-                                 f"Page Info:\nName: {page_name}\nAbout: {page_about}\nLatest Post: {post_info}",
+                                 f"Page Info:\nName: {page_name}\nAbout: {page_about}",
                                  quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                                  platform=platform)
                 else:
                     logger.error(f"Failed to fetch page info: {response.text}")
-                    send_message(sender_id, "Couldn’t fetch page info. Try again later.", ...)
+                    send_message(sender_id, "Couldn’t fetch page info. Try again later.",
+                                 quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                                 platform=platform)
             except requests.exceptions.RequestException as e:
                 logger.error(f"Error fetching page info: {str(e)}")
-                send_message(sender_id, "Error fetching page info.", ...)
+                send_message(sender_id, "Error fetching page info.",
+                             quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                             platform=platform)
         else:
-            send_message(sender_id, "Bot lacks necessary permissions or token is invalid to fetch page info.", ...)
+            send_message(sender_id, "Bot lacks necessary permissions or token is invalid to fetch page info.",
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                         platform=platform)
 
     # Order Issue Flow: Order number, Name, Email, Phone, Urgency, Business Name, Website
     elif sender_id in user_data and user_data[sender_id]["category"] == "Order Issue":
@@ -473,6 +477,22 @@ def send_message(sender_id, text, quick_replies=None, platform="meta"):
             logger.info(f"Meta API Response: {response.json()}")
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to send Meta message: {str(e)}")
+    elif platform == "wechat" and WECHAT_APP_ID and WECHAT_APP_SECRET:
+        url = f"https://api.wechat.com/cgi-bin/message/custom/send?access_token={get_wechat_access_token()}"
+        payload = {
+            "touser": sender_id,
+            "msgtype": "text",
+            "text": {"content": text}
+        }
+        if quick_replies:
+            payload["msgtype"] = "news"
+            payload["news"] = {"articles": [{"title": qr["title"], "url": "https://your.link"} for qr in quick_replies]}
+        headers = {"Content-Type": "application/json"}
+        try:
+            response = requests.post(url, json=payload, headers=headers)
+            logger.info("WeChat API Response: %s", response.json())
+        except requests.exceptions.RequestException as e:
+            logger.error("Failed to send WeChat message: %s", str(e))
 
 def get_wechat_access_token():
     if not WECHAT_APP_ID or not WECHAT_APP_SECRET:
