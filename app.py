@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 # Credentials (Use environment variables or local defaults for testing)
 FB_PAGE_TOKEN = os.environ.get("FB_PAGE_TOKEN", "")
 VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "secure_token")
+PAGE_ID = os.environ.get("FB_PAGE_ID", "583963424795793")  # Ensure this is set
 WECHAT_APP_ID = os.environ.get("WECHAT_APP_ID", "")
 WECHAT_APP_SECRET = os.environ.get("WECHAT_APP_SECRET", "")
 
@@ -44,7 +45,7 @@ SCHEDULING_URL = os.environ.get("SCHEDULING_URL", "http://localhost:10002")
 SPREADSHEET_ID = os.environ.get("GOOGLE_SPREADSHEET_ID", "1PPK-cYGb75IH9uKaUf4IACtpAnINwK-n_TAxj86BRlY")
 SHEET_NAME = "Lead and Issue Tracker"
 
-# Required Facebook Permissions
+# Required Facebook Permissions (for reference only)
 REQUIRED_PERMISSIONS = [
     "pages_show_list",
     "pages_manage_metadata",
@@ -84,28 +85,27 @@ except Exception as e:
     worksheet = None
 
 # === Permission Verification Function ===
-def verify_page_permissions():
-    """Verify if the required Facebook permissions are granted."""
+def verify_page_token():
+    """Verify if the Page Access Token is valid by making a test API call."""
     if not FB_PAGE_TOKEN:
         logger.error("No FB_PAGE_TOKEN provided.")
         return False
-    url = f"https://graph.facebook.com/v20.0/me/permissions?access_token={FB_PAGE_TOKEN}"
+    if not PAGE_ID:
+        logger.error("No PAGE_ID provided.")
+        return False
+    # Test the token by fetching basic page info
+    url = f"https://graph.facebook.com/v20.0/{PAGE_ID}?fields=id,name&access_token={FB_PAGE_TOKEN}"
     try:
         response = requests.get(url)
         if response.status_code == 200:
-            permissions_data = response.json().get("data", [])
-            granted_permissions = {perm["permission"]: perm["status"] for perm in permissions_data}
-            for perm in REQUIRED_PERMISSIONS:
-                if granted_permissions.get(perm) != "granted":
-                    logger.warning(f"Permission {perm} not granted.")
-                    return False
-            logger.info("All required permissions are granted.")
+            page_data = response.json()
+            logger.info(f"Page Access Token validated for Page: {page_data.get('name')} (ID: {page_data.get('id')})")
             return True
         else:
-            logger.error("Failed to verify permissions: %s", response.text)
+            logger.error(f"Failed to validate Page Access Token: {response.text}")
             return False
     except requests.exceptions.RequestException as e:
-        logger.error("Error verifying permissions: %s", str(e))
+        logger.error(f"Error validating Page Access Token: {str(e)}")
         return False
 
 # === Webhook Endpoints ===
@@ -462,7 +462,7 @@ def write_to_google_sheet(sender_id, category, data):
 
 def send_message(sender_id, text, quick_replies=None, platform="meta"):
     if platform == "meta" and FB_PAGE_TOKEN:
-        url = f"https://graph.facebook.com/v20.0/me/messages?access_token={FB_PAGE_TOKEN}"
+        url = f"https://graph.facebook.com/v20.0/{PAGE_ID}/messages?access_token={FB_PAGE_TOKEN}"
         payload = {"recipient": {"id": sender_id}, "message": {"text": text}}
         if quick_replies:
             payload["message"]["quick_replies"] = [
@@ -470,26 +470,11 @@ def send_message(sender_id, text, quick_replies=None, platform="meta"):
             ]
         headers = {"Content-Type": "application/json"}
         try:
+            logger.info(f"Sending message to {sender_id} with payload: {payload}")
             response = requests.post(url, json=payload, headers=headers)
-            logger.info("Meta API Response: %s", response.json())
+            logger.info(f"Meta API Response: {response.json()}")
         except requests.exceptions.RequestException as e:
-            logger.error("Failed to send Meta message: %s", str(e))
-    elif platform == "wechat" and WECHAT_APP_ID and WECHAT_APP_SECRET:
-        url = f"https://api.wechat.com/cgi-bin/message/custom/send?access_token={get_wechat_access_token()}"
-        payload = {
-            "touser": sender_id,
-            "msgtype": "text",
-            "text": {"content": text}
-        }
-        if quick_replies:
-            payload["msgtype"] = "news"
-            payload["news"] = {"articles": [{"title": qr["title"], "url": "https://your.link"} for qr in quick_replies]}
-        headers = {"Content-Type": "application/json"}
-        try:
-            response = requests.post(url, json=payload, headers=headers)
-            logger.info("WeChat API Response: %s", response.json())
-        except requests.exceptions.RequestException as e:
-            logger.error("Failed to send WeChat message: %s", str(e))
+            logger.error(f"Failed to send Meta message: {str(e)}")
 
 def get_wechat_access_token():
     if not WECHAT_APP_ID or not WECHAT_APP_SECRET:
@@ -500,10 +485,11 @@ def get_wechat_access_token():
 
 # === Main Execution ===
 if __name__ == '__main__':
-    # Verify permissions on startup
-    if verify_page_permissions():
-        logger.info("Startup: All required permissions verified.")
+    logger.info(f"Starting with FB_PAGE_TOKEN: {'[REDACTED]' if FB_PAGE_TOKEN else 'NOT SET'}")
+    logger.info(f"Using PAGE_ID: {PAGE_ID}")
+    if verify_page_token():
+        logger.info("Startup: Page Access Token validated successfully.")
     else:
-        logger.warning("Startup: Some required permissions are missing.")
+        logger.warning("Startup: Page Access Token validation failed. Check FB_PAGE_TOKEN and PAGE_ID.")
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port, debug=True)
