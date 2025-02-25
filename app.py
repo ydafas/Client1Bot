@@ -37,7 +37,7 @@ INVENTORY_URL = os.environ.get("INVENTORY_URL", "http://localhost:10001")  # Def
 SCHEDULING_URL = os.environ.get("SCHEDULING_URL", "http://localhost:10002")  # Default for local testing
 
 # 🔹 Google Sheets Configuration
-SPREADSHEET_ID = os.environ.get("GOOGLE_SPREADSHEET_ID", "your-spreadsheet-id-here")  # Set this in Render
+SPREADSHEET_ID = os.environ.get("GOOGLE_SPREADSHEET_ID", "1PPK-cYGb75IH9uKaUf4IACtpAnINwK-n_TAxj86BRlY")  # Set this in Render
 SHEET_NAME = os.environ.get("GOOGLE_SHEET_NAME", "Leads")  # Default sheet name for leads
 
 def authenticate_google_sheets():
