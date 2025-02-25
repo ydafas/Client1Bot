@@ -295,24 +295,26 @@ def process_message(sender_id, message, platform="meta"):
         del user_data[sender_id]
     # New Functionality Using Added Permissions
     elif message == 'page_info':
-        if verify_page_token():  # Changed from verify_page_permissions()
-            # Example: Fetch page list using pages_show_list
-            url = f"https://graph.facebook.com/v20.0/me/accounts?fields=name&access_token={FB_PAGE_TOKEN}"
+        if verify_page_token():
+            # Use the PAGE_ID directly since we have a Page Access Token
+            url = f"https://graph.facebook.com/v20.0/{PAGE_ID}?fields=name,about&access_token={FB_PAGE_TOKEN}"
             try:
                 response = requests.get(url)
                 if response.status_code == 200:
-                    pages = response.json().get("data", [])
-                    page_names = [page["name"] for page in pages]
+                    page_data = response.json()
+                    page_name = page_data.get("name", "Unknown Page")
+                    page_about = page_data.get("about", "No description available.")
                     send_message(sender_id,
-                                 f"Connected Pages: {', '.join(page_names) if page_names else 'No pages found.'}",
+                                 f"Page Info:\nName: {page_name}\nAbout: {page_about}",
                                  quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                                  platform=platform)
                 else:
+                    logger.error(f"Failed to fetch page info: {response.text}")
                     send_message(sender_id, "Couldn’t fetch page info. Try again later.",
                                  quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                                  platform=platform)
             except requests.exceptions.RequestException as e:
-                logger.error("Error fetching page info: %s", str(e))
+                logger.error(f"Error fetching page info: {str(e)}")
                 send_message(sender_id, "Error fetching page info.",
                              quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                              platform=platform)
