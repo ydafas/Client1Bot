@@ -295,9 +295,9 @@ def process_message(sender_id, message, platform="meta"):
         del user_data[sender_id]
     # New Functionality Using Added Permissions
     elif message == 'page_info':
-        if verify_page_permissions():
+        if verify_page_token():  # Changed from verify_page_permissions()
             # Example: Fetch page list using pages_show_list
-            url = f"https://graph.facebook.com/v20.0/me/accounts?access_token={FB_PAGE_TOKEN}"
+            url = f"https://graph.facebook.com/v20.0/me/accounts?fields=name&access_token={FB_PAGE_TOKEN}"
             try:
                 response = requests.get(url)
                 if response.status_code == 200:
@@ -317,7 +317,7 @@ def process_message(sender_id, message, platform="meta"):
                              quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                              platform=platform)
         else:
-            send_message(sender_id, "Bot lacks necessary permissions to fetch page info.",
+            send_message(sender_id, "Bot lacks necessary permissions or token is invalid to fetch page info.",
                          quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                          platform=platform)
 
