@@ -29,7 +29,7 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name(os.environ["GOOGL
 gc = gspread.authorize(credentials)
 
 # 🔹 Google Sheet Configuration (Replace with your actual sheet ID)
-SHEET_ID = os.getenv("GOOGLE_SHEET_ID", "your_google_sheet_id_here")
+SHEET_ID = os.getenv("GOOGLE_SHEET_ID", "1PPK-cYGb75IH9uKaUf4IACtpAnINwK-n_TAxj86BRlY/")
 sheet = gc.open_by_key(SHEET_ID).sheet1  # Select the first sheet
 
 # 🔹 Facebook API Credentials
