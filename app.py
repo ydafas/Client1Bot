@@ -4,6 +4,7 @@ import os
 import logging
 import json
 from oauth2client.service_account import ServiceAccountCredentials
+from gspread import authorize, Worksheet
 
 app = Flask(__name__)
 
@@ -35,7 +36,10 @@ user_data = {}  # Dictionary to store user info (e.g., name, email, order)
 INVENTORY_URL = os.environ.get("INVENTORY_URL", "http://localhost:10001")  # Default for local testing
 SCHEDULING_URL = os.environ.get("SCHEDULING_URL", "http://localhost:10002")  # Default for local testing
 
-# 🔹 Google Sheets Authentication
+# 🔹 Google Sheets Configuration
+SPREADSHEET_ID = os.environ.get("GOOGLE_SPREADSHEET_ID", "your-spreadsheet-id-here")  # Set this in Render
+SHEET_NAME = os.environ.get("GOOGLE_SHEET_NAME", "Leads")  # Default sheet name for leads
+
 def authenticate_google_sheets():
     # Get the Google credentials from the environment variable
     google_credentials_json = os.environ.get("GOOGLE_CREDENTIALS")
@@ -56,12 +60,21 @@ def authenticate_google_sheets():
     logger.info("Successfully authenticated with Google Sheets for sender_id: %s", sender_id if 'sender_id' in locals() else 'unknown')
     return creds
 
-# Initialize Google Sheets client (assuming you need it globally or for a specific function)
+# Initialize Google Sheets client globally
 try:
-    client = authenticate_google_sheets()
+    gc = authorize(authenticate_google_sheets())
+    # Open the spreadsheet and worksheet (create if it doesn't exist)
+    sh = gc.open_by_key(SPREADSHEET_ID)
+    try:
+        worksheet = sh.worksheet(SHEET_NAME)
+    except Exception as e:
+        logger.warning("Sheet '%s' not found, creating new one", SHEET_NAME)
+        worksheet = sh.add_worksheet(title=SHEET_NAME, rows="100", cols="20")
+        # Initialize headers for leads (optional, adjust as needed)
+        worksheet.append_row(["Sender ID", "Name", "Email", "Phone", "Company", "Timestamp"])
 except Exception as e:
-    logger.error("Failed to authenticate with Google Sheets: %s", str(e))
-    client = None  # Set to None if authentication fails, handle appropriately in your code
+    logger.error("Failed to initialize Google Sheets: %s", str(e))
+    gc = None  # Set to None if authentication fails, handle appropriately in your code
 
 # ✅ Webhooks for Multiple Platforms (Meta: Facebook, Instagram, Threads)
 @app.route('/webhook', methods=['GET', 'POST'])
@@ -198,17 +211,46 @@ def process_message(sender_id, message, platform="meta"):
                      platform=platform)
     elif message == 'products':
         send_message(sender_id, f"Check our products: {PRODUCT_CATALOG_LINK}",
-                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     quick_replies=[{"title": "Back to Sales", "payload": "sales"},
+                                    {"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message == 'offers':
         send_message(sender_id, f"Get 20% off with code {PROMO_CODE}!",
-                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     quick_replies=[{"title": "Back to Sales", "payload": "sales"},
+                                    {"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message == 'lead':
         send_message(sender_id, "Interested in our services? Provide your info:\n1. Name\n2. Email\n3. Phone (optional)\n4. Company (optional)",
-                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
         user_data[sender_id] = {"state": "waiting_lead", "lead_data": {}}
+    elif message and sender_id in user_data and user_data[sender_id]["state"] == "waiting_lead":
+        parts = message.split("\n")
+        lead_data = user_data[sender_id]["lead_data"]
+        if len(parts) >= 1:
+            lead_data["name"] = parts[0].strip()
+        if len(parts) >= 2:
+            lead_data["email"] = parts[1].strip()
+        if len(parts) >= 3:
+            lead_data["phone"] = parts[2].strip() if parts[2].strip() else None
+        if len(parts) >= 4:
+            lead_data["company"] = parts[3].strip() if parts[3].strip() else None
+        # Write lead data to Google Sheet
+        if gc and worksheet:  # Ensure Google Sheets is initialized
+            try:
+                row = [
+                    sender_id,
+                    lead_data.get("name", ""),
+                    lead_data.get("email", ""),
+                    lead_data.get("phone", ""),
+                    lead_data.get("company", ""),
+                    datetime.datetime.now().isoformat()
+                ]
+                worksheet.append_row(row)
+                logger.info("Lead data written to Google Sheet for sender_id: %s", sender_id)
+            except Exception as e:
+                logger.error("Failed to write lead data to Google Sheet: %s", str(e))
+        send_message(sender_id, "Thanks for your info. We’ll reach out soon.", platform=platform)
+        del user_data[sender_id]  # Clear user data after lead capture
     elif message == 'inventory':
         send_message(sender_id, "Which product would you like to check? (e.g., chatbot_basic, chatbot_pro)",
                      quick_replies=[{"title": "Basic Chatbot", "payload": "check_basic"},
@@ -321,9 +363,22 @@ def process_message(sender_id, message, platform="meta"):
                     lead_data["phone"] = parts[2].strip() if parts[2].strip() else None
                 if len(parts) >= 4:
                     lead_data["company"] = parts[3].strip() if parts[3].strip() else None
-                send_message(sender_id, "Thanks for your info! We’ll reach out soon. Anything else?",
-                             quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
-                             platform=platform)
+                # Write lead data to Google Sheet
+                if gc and worksheet:  # Ensure Google Sheets is initialized
+                    try:
+                        row = [
+                            sender_id,
+                            lead_data.get("name", ""),
+                            lead_data.get("email", ""),
+                            lead_data.get("phone", ""),
+                            lead_data.get("company", ""),
+                            datetime.datetime.now().isoformat()
+                        ]
+                        worksheet.append_row(row)
+                        logger.info("Lead data written to Google Sheet for sender_id: %s", sender_id)
+                    except Exception as e:
+                        logger.error("Failed to write lead data to Google Sheet: %s", str(e))
+                send_message(sender_id, "Thanks for your info. We’ll reach out soon.", platform=platform)
                 del user_data[sender_id]  # Clear user data after lead capture
         else:
             send_message(sender_id, "Sorry, I didn’t understand that. Try selecting an option or type 'start'.",
