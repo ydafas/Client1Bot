@@ -44,6 +44,14 @@ SCHEDULING_URL = os.environ.get("SCHEDULING_URL", "http://localhost:10002")
 SPREADSHEET_ID = os.environ.get("GOOGLE_SPREADSHEET_ID", "1PPK-cYGb75IH9uKaUf4IACtpAnINwK-n_TAxj86BRlY")
 SHEET_NAME = "Lead and Issue Tracker"
 
+# Required Facebook Permissions
+REQUIRED_PERMISSIONS = [
+    "pages_show_list",
+    "pages_manage_metadata",
+    "pages_messaging",
+    "business_management",
+    "pages_read_engagement"
+]
 
 # === Google Sheets Authentication ===
 def authenticate_google_sheets():
@@ -58,7 +66,6 @@ def authenticate_google_sheets():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
     logger.info("Successfully authenticated with Google Sheets")
     return creds
-
 
 # Initialize Google Sheets client
 try:
@@ -76,9 +83,32 @@ except Exception as e:
     gc = None
     worksheet = None
 
+# === Permission Verification Function ===
+def verify_page_permissions():
+    """Verify if the required Facebook permissions are granted."""
+    if not FB_PAGE_TOKEN:
+        logger.error("No FB_PAGE_TOKEN provided.")
+        return False
+    url = f"https://graph.facebook.com/v20.0/me/permissions?access_token={FB_PAGE_TOKEN}"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            permissions_data = response.json().get("data", [])
+            granted_permissions = {perm["permission"]: perm["status"] for perm in permissions_data}
+            for perm in REQUIRED_PERMISSIONS:
+                if granted_permissions.get(perm) != "granted":
+                    logger.warning(f"Permission {perm} not granted.")
+                    return False
+            logger.info("All required permissions are granted.")
+            return True
+        else:
+            logger.error("Failed to verify permissions: %s", response.text)
+            return False
+    except requests.exceptions.RequestException as e:
+        logger.error("Error verifying permissions: %s", str(e))
+        return False
 
 # === Webhook Endpoints ===
-# Meta Webhook (Facebook, Instagram, Threads)
 @app.route('/webhook', methods=['GET', 'POST'])
 def fb_webhook():
     if request.method == 'GET':
@@ -111,20 +141,6 @@ def fb_webhook():
                             process_message(sender_id, payload, platform="meta")
         return "EVENT_RECEIVED", 200
 
-
-# WeChat Webhook (Commented out but preserved for future use)
-# @app.route('/wechat', methods=['POST'])
-# def wechat_webhook():
-#    if not WECHAT_APP_ID or not WECHAT_APP_SECRET:
-#        logger.warning("WeChat credentials not set. Skipping WeChat message.")
-#        return "WeChat not configured", 400
-#
-#    data = request.get_data(as_text=True)
-#    sender_id = "wechat_user"
-#    message_text = data.lower().strip()
-#    process_message(sender_id, message_text, platform="wechat")
-#    return "<xml><ToUserName><![CDATA[user]]></ToUserName><FromUserName><![CDATA[bot]]></FromUserName><MsgType><![CDATA[text]]></MsgType><Content><![CDATA[Message received!]]></Content></xml>"
-
 # === Message Processing ===
 def process_message(sender_id, message, platform="meta"):
     # Reset state for certain commands
@@ -139,7 +155,8 @@ def process_message(sender_id, message, platform="meta"):
                                     {"title": "FAQs", "payload": "faq"},
                                     {"title": "Support", "payload": "support"},
                                     {"title": "Sales", "payload": "sales"},
-                                    {"title": "Contact Us", "payload": "contact"}],
+                                    {"title": "Contact Us", "payload": "contact"},
+                                    {"title": "Page Info", "payload": "page_info"}],
                      platform=platform)
     elif message in ['services', 'service']:
         send_message(sender_id, f"We offer automated chatbots for businesses! How can we assist you?",
@@ -276,6 +293,33 @@ def process_message(sender_id, message, platform="meta"):
                          quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                          platform=platform)
         del user_data[sender_id]
+    # New Functionality Using Added Permissions
+    elif message == 'page_info':
+        if verify_page_permissions():
+            # Example: Fetch page list using pages_show_list
+            url = f"https://graph.facebook.com/v20.0/me/accounts?access_token={FB_PAGE_TOKEN}"
+            try:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    pages = response.json().get("data", [])
+                    page_names = [page["name"] for page in pages]
+                    send_message(sender_id,
+                                 f"Connected Pages: {', '.join(page_names) if page_names else 'No pages found.'}",
+                                 quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                                 platform=platform)
+                else:
+                    send_message(sender_id, "Couldn’t fetch page info. Try again later.",
+                                 quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                                 platform=platform)
+            except requests.exceptions.RequestException as e:
+                logger.error("Error fetching page info: %s", str(e))
+                send_message(sender_id, "Error fetching page info.",
+                             quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                             platform=platform)
+        else:
+            send_message(sender_id, "Bot lacks necessary permissions to fetch page info.",
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                         platform=platform)
 
     # Order Issue Flow: Order number, Name, Email, Phone, Urgency, Business Name, Website
     elif sender_id in user_data and user_data[sender_id]["category"] == "Order Issue":
@@ -390,9 +434,9 @@ def process_message(sender_id, message, platform="meta"):
                                     {"title": "FAQs", "payload": "faq"},
                                     {"title": "Support", "payload": "support"},
                                     {"title": "Sales", "payload": "sales"},
-                                    {"title": "Contact Us", "payload": "contact"}],
+                                    {"title": "Contact Us", "payload": "contact"},
+                                    {"title": "Page Info", "payload": "page_info"}],
                      platform=platform)
-
 
 # === Helper Functions ===
 def write_to_google_sheet(sender_id, category, data):
@@ -415,7 +459,6 @@ def write_to_google_sheet(sender_id, category, data):
             logger.info("Data written to Google Sheet for sender_id: %s, category: %s", sender_id, category)
         except Exception as e:
             logger.error("Failed to write to Google Sheet: %s", str(e))
-
 
 def send_message(sender_id, text, quick_replies=None, platform="meta"):
     if platform == "meta" and FB_PAGE_TOKEN:
@@ -448,8 +491,6 @@ def send_message(sender_id, text, quick_replies=None, platform="meta"):
         except requests.exceptions.RequestException as e:
             logger.error("Failed to send WeChat message: %s", str(e))
 
-
-# WeChat Helper Function (Preserved for future use)
 def get_wechat_access_token():
     if not WECHAT_APP_ID or not WECHAT_APP_SECRET:
         raise ValueError("WeChat credentials not set")
@@ -457,8 +498,12 @@ def get_wechat_access_token():
     response = requests.get(url)
     return response.json()["access_token"]
 
-
 # === Main Execution ===
 if __name__ == '__main__':
+    # Verify permissions on startup
+    if verify_page_permissions():
+        logger.info("Startup: All required permissions verified.")
+    else:
+        logger.warning("Startup: Some required permissions are missing.")
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port, debug=True)
