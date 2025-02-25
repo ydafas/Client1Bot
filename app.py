@@ -80,63 +80,30 @@ def fb_webhook():
         return "EVENT_RECEIVED", 200
 
 def process_message(sender_id, message):
-    if message in ['start', 'get_started', 'back to main menu']:
+    logger.info("🔹 Processing message: %s for sender_id: %s", message, sender_id)
+
+    if message in ['hi', 'hello', 'start', 'get_started', 'back to main menu']:
         if sender_id in user_data:
             del user_data[sender_id]
         send_message(sender_id, f"Welcome to {BUSINESS_NAME}! How can I help?",
                      quick_replies=[{"title": "Support", "payload": "support"},
                                     {"title": "Sales", "payload": "sales"},
                                     {"title": "Contact", "payload": "contact"}])
+        return  # Ensure function exits after handling
 
     elif message == 'support':
         send_message(sender_id, "What kind of issue are you experiencing?",
                      quick_replies=[{"title": "Order Issue", "payload": "order_issue"},
                                     {"title": "Technical Issue", "payload": "tech_issue"},
                                     {"title": "Back to Main Menu", "payload": "start"}])
+        return
 
-    elif message == 'order_issue':
-        user_data[sender_id] = {"state": "waiting_order", "category": "Order Issue"}
-        send_message(sender_id, "Please provide your order number.")
-
-    elif user_data.get(sender_id, {}).get("state") == "waiting_order":
-        user_data[sender_id]["order_number"] = message
-        send_message(sender_id, "Thanks! Please provide your name.")
-        user_data[sender_id]["state"] = "waiting_order_name"
-
-    elif user_data.get(sender_id, {}).get("state") == "waiting_order_name":
-        user_data[sender_id]["user_name"] = message
-        send_message(sender_id, "Thanks! How urgent is this? (Urgent/Not Urgent)",
-                     quick_replies=[{"title": "Urgent", "payload": "urgent"},
-                                    {"title": "Not Urgent", "payload": "not_urgent"}])
-        user_data[sender_id]["state"] = "waiting_urgency"
-
-    elif user_data.get(sender_id, {}).get("state") == "waiting_urgency":
-        user_data[sender_id]["urgency"] = message
-        log_data(sender_id)
-        send_message(sender_id, "Your order issue has been recorded. A support member will follow up.",
-                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}])
-        del user_data[sender_id]
-
-    elif message == 'tech_issue':
-        user_data[sender_id] = {"state": "waiting_issue", "category": "Technical Issue"}
-        send_message(sender_id, "Please provide your name.")
-
-    elif user_data.get(sender_id, {}).get("state") == "waiting_issue":
-        user_data[sender_id]["user_name"] = message
-        send_message(sender_id, "Which website is this issue related to?")
-        user_data[sender_id]["state"] = "waiting_website"
-
-    elif user_data.get(sender_id, {}).get("state") == "waiting_website":
-        user_data[sender_id]["website"] = message
-        send_message(sender_id, "Please describe the technical issue.")
-        user_data[sender_id]["state"] = "waiting_issue_description"
-
-    elif user_data.get(sender_id, {}).get("state") == "waiting_issue_description":
-        user_data[sender_id]["issue_description"] = message
-        log_data(sender_id)
-        send_message(sender_id, "Your technical issue has been recorded. A support member will follow up.",
-                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}])
-        del user_data[sender_id]
+    # Fallback if message isn't recognized
+    send_message(sender_id, "Sorry, I didn't understand that. Try selecting an option from the menu.",
+                 quick_replies=[{"title": "Support", "payload": "support"},
+                                {"title": "Sales", "payload": "sales"},
+                                {"title": "Contact", "payload": "contact"},
+                                {"title": "Back to Main Menu", "payload": "start"}])
 
 def log_data(sender_id):
     if gc and support_sheet:
@@ -161,8 +128,10 @@ def log_data(sender_id):
             logger.error("Failed to write data: %s", str(e))
 
 def send_message(sender_id, text, quick_replies=None):
+    logger.info("🔹 Sending message to sender_id: %s -> %s", sender_id, text)
+
     if not FB_PAGE_TOKEN:
-        logger.warning("FB_PAGE_TOKEN not set.")
+        logger.warning("⚠️ FB_PAGE_TOKEN not set. Message not sent.")
         return
 
     url = f"https://graph.facebook.com/v20.0/me/messages?access_token={FB_PAGE_TOKEN}"
@@ -176,7 +145,8 @@ def send_message(sender_id, text, quick_replies=None):
         response = requests.post(url, json=payload, headers=headers)
         logger.info("🔹 Meta API Response: %s", response.json())
     except requests.exceptions.RequestException as e:
-        logger.error("Failed to send message: %s", str(e))
+        logger.error("❌ Failed to send message: %s", str(e))
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)), debug=True)
