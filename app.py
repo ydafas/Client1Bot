@@ -94,7 +94,7 @@ def process_message(sender_id, message, platform="meta"):
             del user_data[sender_id]  # Reset state for new interactions
 
     # Handle non-stateful messages (quick replies, standalone commands) first
-    if message in ['hi', 'hello', 'start', 'get_started', 'back to main menu']:  # Handle Get Started button and text input
+    if message in ['hi', 'hello', 'start', 'get_started']:  # Handle Get Started button
         send_message(sender_id, f"Hey there! Welcome to {BUSINESS_NAME}! 🚀 How can I help?",
                      quick_replies=[{"title": "Services", "payload": "services"},
                                     {"title": "FAQs", "payload": "faq"},
@@ -145,21 +145,21 @@ def process_message(sender_id, message, platform="meta"):
                      quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
         user_data[sender_id] = {"state": "waiting_order"}
-    elif message in ['tech_issue', 'technical_issue', 'other_issue']:  # Handle variations
-        send_message(sender_id, "Describe your issue briefly.",
+    elif message in ['tech_issue', 'technical_issue', 'technical issues']:  # Handle variations for Technical Issues
+        send_message(sender_id, "Describe your technical issue briefly.",
                      quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
         user_data[sender_id] = {"state": "waiting_issue"}
+    elif message in ['contact', 'contact us']:  # Handle variations for Contact Us
+        send_message(sender_id, f"📧 Email: {SUPPORT_EMAIL}\n📞 Phone: {SUPPORT_PHONE}",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                     platform=platform)
     elif message == 'sales':
         send_message(sender_id, "Interested in our products? What can I help with?",
                      quick_replies=[{"title": "Products", "payload": "products"},
                                     {"title": "Offers", "payload": "offers"},
                                     {"title": "Lead Capture", "payload": "lead"},
                                     {"title": "Back to Main Menu", "payload": "start"}],
-                     platform=platform)
-    elif message == 'contact':
-        send_message(sender_id, f"📧 Email: {SUPPORT_EMAIL}\n📞 Phone: {SUPPORT_PHONE}",
-                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                      platform=platform)
     elif message == 'products':
         send_message(sender_id, f"Check our products: {PRODUCT_CATALOG_LINK}",
