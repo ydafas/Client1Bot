@@ -1,57 +1,52 @@
-from flask import Flask, request, jsonify
-import requests
 import os
-import json
-import tempfile
+import requests
+import datetime
 import logging
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from flask import Flask, request, jsonify
 
-app = Flask(__name__)
-
-# 🔹 Set up logging for debugging
+# 🔹 Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 🔹 Load Google Credentials from Environment Variables (SECURE)
-google_creds = os.getenv("GOOGLE_CREDENTIALS")
-if google_creds:
-    creds_dict = json.loads(google_creds)
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_file:
-        temp_file.write(json.dumps(creds_dict).encode())
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_file.name
-else:
-    raise Exception("GOOGLE_CREDENTIALS environment variable is missing")
+app = Flask(__name__)
 
-# 🔹 Authenticate Google Sheets
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-credentials = ServiceAccountCredentials.from_json_keyfile_name(os.environ["GOOGLE_APPLICATION_CREDENTIALS"], scope)
-gc = gspread.authorize(credentials)
+# ✅ Facebook API Credentials
+FB_PAGE_TOKEN = os.environ.get("FB_PAGE_TOKEN", "")  # Your Facebook Page Access Token
+VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "secure_token")  # Verification token
 
-# 🔹 Google Sheet Configuration (Replace with your actual sheet ID)
-SHEET_ID = os.getenv("GOOGLE_SHEET_ID", "1PPK-cYGb75IH9uKaUf4IACtpAnINwK-n_TAxj86BRlY/")
-sheet = gc.open_by_key(SHEET_ID).sheet1  # Select the first sheet
+# ✅ Google Sheets API Setup
+SHEET_ID = os.environ.get("SHEET_ID", "")  # Google Sheet ID
+SERVICE_ACCOUNT_FILE = "service_account.json"  # JSON Key file
 
-# 🔹 Facebook API Credentials
-FB_PAGE_TOKEN = os.getenv("FB_PAGE_TOKEN")
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "secure_token")
+def authenticate_google_sheets():
+    """Authenticate Google Sheets API."""
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
+    client = gspread.authorize(creds)
+    return client
 
-# 🔹 Business Info
-BUSINESS_NAME = os.getenv("BUSINESS_NAME", "Client1 Inc")
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@client1.com")
-SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "(123) 456-7890")
-PRODUCT_CATALOG_LINK = os.getenv("PRODUCT_CATALOG_LINK", "https://client1.com/products")
+client = authenticate_google_sheets()
+sheet = client.open_by_key(SHEET_ID).sheet1  # Use the first sheet
 
-# 🔹 User Data Storage (Temporary - Stored in Memory)
-user_data = {}
-
+def log_to_google_sheets(entry):
+    """Log chatbot interactions to Google Sheets."""
+    try:
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        row = [timestamp] + list(entry.values())  # Append timestamp before data
+        sheet.append_row(row)
+        logger.info("✅ Data logged to Google Sheets successfully!")
+    except Exception as e:
+        logger.error(f"❌ Error logging to Google Sheets: {e}")
 
 # ✅ Webhook for Facebook Messenger
 @app.route('/webhook', methods=['GET', 'POST'])
 def fb_webhook():
-    if request.method == 'GET':  # Verify Webhook
+    if request.method == 'GET':  # Webhook verification
         verify_token = request.args.get("hub.verify_token")
         challenge = request.args.get("hub.challenge")
+
         if verify_token == VERIFY_TOKEN:
             return challenge
         return "Verification failed", 403
@@ -75,23 +70,27 @@ def fb_webhook():
                         elif 'postback' in messaging_event:
                             payload = messaging_event['postback'].get('payload', '').lower().strip()
                             process_message(sender_id, payload)
-
         return "EVENT_RECEIVED", 200
 
-
 # ✅ Process Incoming Messages
-def process_message(sender_id, message):
-    if message in ['start', 'get_started', 'welcome_message', 'back to main menu']:
-        if sender_id in user_data:
-            del user_data[sender_id]
+user_data = {}
 
+def process_message(sender_id, message):
     if message in ['hi', 'hello', 'start', 'get_started']:
-        send_message(sender_id, f"Hey there! Welcome to {BUSINESS_NAME}! 🚀 How can I help?",
+        send_message(sender_id, "Hey there! Welcome to our chatbot! 🚀 How can I help?",
                      quick_replies=[{"title": "Services", "payload": "services"},
-                                    {"title": "FAQs", "payload": "faq"},
                                     {"title": "Support", "payload": "support"},
                                     {"title": "Sales", "payload": "sales"},
-                                    {"title": "Contact Us", "payload": "contact"}])
+                                    {"title": "Contact", "payload": "contact"}])
+
+    elif message == 'services':
+        send_message(sender_id, "We offer automated chatbots for businesses! How can we assist you?",
+                     quick_replies=[{"title": "Learn More", "payload": "learn_more"},
+                                    {"title": "Back to Main Menu", "payload": "start"}])
+
+    elif message == 'learn_more':
+        send_message(sender_id, "Our chatbot solutions help automate customer interactions. Contact us for a demo!",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}])
 
     elif message == 'support':
         send_message(sender_id, "Let’s solve your issue! What’s the problem?",
@@ -100,21 +99,33 @@ def process_message(sender_id, message):
                                     {"title": "Back to Main Menu", "payload": "start"}])
 
     elif message == 'order_issue':
-        send_message(sender_id, "Please provide your order number.")
+        send_message(sender_id, "Please provide your Order Number.")
         user_data[sender_id] = {"state": "waiting_order"}
 
-    elif sender_id in user_data and user_data[sender_id].get("state") == "waiting_order":
-        user_data[sender_id]["order_number"] = message
-        send_message(sender_id, "How urgent is this?",
+    elif sender_id in user_data and user_data[sender_id]["state"] == "waiting_order":
+        order_number = message
+        send_message(sender_id, "How urgent is this? (Urgent/Not Urgent)",
                      quick_replies=[{"title": "Urgent", "payload": "urgent"},
                                     {"title": "Not Urgent", "payload": "not_urgent"}])
+        user_data[sender_id]["order_number"] = order_number
         user_data[sender_id]["state"] = "waiting_urgency"
 
-    elif sender_id in user_data and user_data[sender_id].get("state") == "waiting_urgency":
-        user_data[sender_id]["urgency"] = message
-        order_data = user_data.pop(sender_id)
-        log_to_google_sheets(sender_id, order_data)
-        send_message(sender_id, "A team member will follow up soon on your order.")
+    elif sender_id in user_data and user_data[sender_id]["state"] == "waiting_urgency":
+        urgency = message
+        issue_data = {
+            "Name": "N/A",
+            "Email": "N/A",
+            "Phone": "N/A",
+            "Issue Type": "Order Issue",
+            "Issue Details": "N/A",
+            "Order Number": user_data[sender_id]["order_number"],
+            "Urgency": urgency,
+            "Message": "Issue Logged"
+        }
+        log_to_google_sheets(issue_data)
+        send_message(sender_id, "✅ Your order issue has been recorded! A team member will follow up shortly.",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}])
+        del user_data[sender_id]
 
     elif message == 'sales':
         send_message(sender_id, "Interested in our products? What can I help with?",
@@ -123,45 +134,34 @@ def process_message(sender_id, message):
                                     {"title": "Back to Main Menu", "payload": "start"}])
 
     elif message == 'products':
-        send_message(sender_id, f"Check our products: {PRODUCT_CATALOG_LINK}",
-                     quick_replies=[{"title": "Back to Sales", "payload": "sales"},
-                                    {"title": "Back to Main Menu", "payload": "start"}])
+        send_message(sender_id, "Check out our product catalog here: https://yourstore.com/products",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}])
 
     elif message == 'offers':
-        send_message(sender_id, "Get 20% off with code CHAT20!",
-                     quick_replies=[{"title": "Back to Sales", "payload": "sales"},
-                                    {"title": "Back to Main Menu", "payload": "start"}])
+        send_message(sender_id, "We have an ongoing 20% discount! Use code CHAT20.",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}])
 
+    elif message == 'contact':
+        send_message(sender_id, "📧 Email: support@yourbusiness.com\n📞 Phone: (123) 456-7890",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}])
 
-# ✅ Log Data to Google Sheets
-def log_to_google_sheets(sender_id, data):
-    try:
-        sheet.append_row([sender_id, data.get("order_number", ""), data.get("urgency", ""), "Pending"])
-        logger.info("🔹 Successfully logged data to Google Sheets")
-    except Exception as e:
-        logger.error("🔹 Failed to log data to Google Sheets: %s", str(e))
-
+    else:
+        send_message(sender_id, "Sorry, I didn’t understand that. Try selecting an option or type 'start'.",
+                     quick_replies=[{"title": "Back to Main Menu", "payload": "start"}])
 
 # ✅ Send Messages
 def send_message(sender_id, text, quick_replies=None):
-    if not FB_PAGE_TOKEN:
-        logger.warning("FB_PAGE_TOKEN not set. Skipping message.")
-        return
-
     url = f"https://graph.facebook.com/v20.0/me/messages?access_token={FB_PAGE_TOKEN}"
     payload = {"recipient": {"id": sender_id}, "message": {"text": text}}
 
     if quick_replies:
-        payload["message"]["quick_replies"] = [{"content_type": "text", "title": qr["title"], "payload": qr["payload"]}
-                                               for qr in quick_replies]
+        payload["message"]["quick_replies"] = [{"content_type": "text", "title": qr["title"], "payload": qr["payload"]} for qr in quick_replies]
 
     headers = {"Content-Type": "application/json"}
     response = requests.post(url, json=payload, headers=headers)
     logger.info("🔹 Meta API Response: %s", response.json())
 
-
-# ✅ Run Flask Server
+# ✅ Run Flask App
 if __name__ == '__main__':
-    port = int(os.getenv("PORT", 5000))
+    port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
-#
