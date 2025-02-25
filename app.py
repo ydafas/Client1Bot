@@ -296,32 +296,28 @@ def process_message(sender_id, message, platform="meta"):
     # New Functionality Using Added Permissions
     elif message == 'page_info':
         if verify_page_token():
-            # Use the PAGE_ID directly since we have a Page Access Token
-            url = f"https://graph.facebook.com/v20.0/{PAGE_ID}?fields=name,about&access_token={FB_PAGE_TOKEN}"
+            url = f"https://graph.facebook.com/v20.0/{PAGE_ID}?fields=name,about,posts{{message,created_time}}&access_token={FB_PAGE_TOKEN}"
             try:
                 response = requests.get(url)
                 if response.status_code == 200:
                     page_data = response.json()
                     page_name = page_data.get("name", "Unknown Page")
                     page_about = page_data.get("about", "No description available.")
+                    posts = page_data.get("posts", {}).get("data", [])
+                    post_info = posts[0]["message"] + " (Posted: " + posts[0][
+                        "created_time"] + ")" if posts else "No recent posts."
                     send_message(sender_id,
-                                 f"Page Info:\nName: {page_name}\nAbout: {page_about}",
+                                 f"Page Info:\nName: {page_name}\nAbout: {page_about}\nLatest Post: {post_info}",
                                  quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
                                  platform=platform)
                 else:
                     logger.error(f"Failed to fetch page info: {response.text}")
-                    send_message(sender_id, "Couldn’t fetch page info. Try again later.",
-                                 quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
-                                 platform=platform)
+                    send_message(sender_id, "Couldn’t fetch page info. Try again later.", ...)
             except requests.exceptions.RequestException as e:
                 logger.error(f"Error fetching page info: {str(e)}")
-                send_message(sender_id, "Error fetching page info.",
-                             quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
-                             platform=platform)
+                send_message(sender_id, "Error fetching page info.", ...)
         else:
-            send_message(sender_id, "Bot lacks necessary permissions or token is invalid to fetch page info.",
-                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
-                         platform=platform)
+            send_message(sender_id, "Bot lacks necessary permissions or token is invalid to fetch page info.", ...)
 
     # Order Issue Flow: Order number, Name, Email, Phone, Urgency, Business Name, Website
     elif sender_id in user_data and user_data[sender_id]["category"] == "Order Issue":
