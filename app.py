@@ -120,7 +120,7 @@ def fb_webhook():
 #        return "WeChat not configured", 400
 #
 #    data = request.get_data(as_text=True)
-#    sender_id = "wechat_user"  # Placeholder; parse from XML in production
+#    sender_id = "wechat_user"
 #    message_text = data.lower().strip()
 #    process_message(sender_id, message_text, platform="wechat")
 #    return "<xml><ToUserName><![CDATA[user]]></ToUserName><FromUserName><![CDATA[bot]]></FromUserName><MsgType><![CDATA[text]]></MsgType><Content><![CDATA[Message received!]]></Content></xml>"
@@ -277,21 +277,21 @@ def process_message(sender_id, message, platform="meta"):
                          platform=platform)
         del user_data[sender_id]
 
-    # Order Issue Flow
+    # Order Issue Flow: Order number, Name, Email, Phone, Urgency, Business Name, Website
     elif sender_id in user_data and user_data[sender_id]["category"] == "Order Issue":
         state = user_data[sender_id]["state"]
         data = user_data[sender_id]["data"]
         if state == "order_number":
             data["order_number"] = message
-            send_message(sender_id, "Your name?", platform=platform)
+            send_message(sender_id, "Please provide your name.", platform=platform)
             user_data[sender_id]["state"] = "order_name"
         elif state == "order_name":
             data["name"] = message
-            send_message(sender_id, "Your email address?", platform=platform)
+            send_message(sender_id, "Please provide your email address.", platform=platform)
             user_data[sender_id]["state"] = "order_email"
         elif state == "order_email":
             data["email"] = message
-            send_message(sender_id, "Your phone number?", platform=platform)
+            send_message(sender_id, "Please provide your phone number.", platform=platform)
             user_data[sender_id]["state"] = "order_phone"
         elif state == "order_phone":
             data["phone"] = message
@@ -302,29 +302,31 @@ def process_message(sender_id, message, platform="meta"):
             user_data[sender_id]["state"] = "order_urgency"
         elif state == "order_urgency":
             data["urgency"] = message
-            send_message(sender_id, "Your business name?", platform=platform)
+            send_message(sender_id, "Please provide your business name.", platform=platform)
             user_data[sender_id]["state"] = "order_business"
         elif state == "order_business":
             data["business_name"] = message
-            send_message(sender_id, "Your website (if applicable)?", platform=platform)
+            send_message(sender_id, "Please provide your website (if applicable).", platform=platform)
             user_data[sender_id]["state"] = "order_website"
         elif state == "order_website":
             data["website"] = message
             write_to_google_sheet(sender_id, "Order Issue", data)
-            send_message(sender_id, "Thanks! A team member will follow up soon.", platform=platform)
+            send_message(sender_id, "Thank you! A team member will follow up soon regarding your order issue.",
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                         platform=platform)
             del user_data[sender_id]
 
-    # Technical Issue Flow
+    # Technical Issue Flow: Name, Email, Phone, Urgency, Business Name, Website, Describe Technical Issue
     elif sender_id in user_data and user_data[sender_id]["category"] == "Technical Issue":
         state = user_data[sender_id]["state"]
         data = user_data[sender_id]["data"]
         if state == "tech_name":
             data["name"] = message
-            send_message(sender_id, "Your email address?", platform=platform)
+            send_message(sender_id, "Please provide your email address.", platform=platform)
             user_data[sender_id]["state"] = "tech_email"
         elif state == "tech_email":
             data["email"] = message
-            send_message(sender_id, "Your phone number?", platform=platform)
+            send_message(sender_id, "Please provide your phone number.", platform=platform)
             user_data[sender_id]["state"] = "tech_phone"
         elif state == "tech_phone":
             data["phone"] = message
@@ -335,11 +337,11 @@ def process_message(sender_id, message, platform="meta"):
             user_data[sender_id]["state"] = "tech_urgency"
         elif state == "tech_urgency":
             data["urgency"] = message
-            send_message(sender_id, "Your business name?", platform=platform)
+            send_message(sender_id, "Please provide your business name.", platform=platform)
             user_data[sender_id]["state"] = "tech_business"
         elif state == "tech_business":
             data["business_name"] = message
-            send_message(sender_id, "Your website (if applicable)?", platform=platform)
+            send_message(sender_id, "Please provide your website (if applicable).", platform=platform)
             user_data[sender_id]["state"] = "tech_website"
         elif state == "tech_website":
             data["website"] = message
@@ -348,33 +350,37 @@ def process_message(sender_id, message, platform="meta"):
         elif state == "tech_description":
             data["issue_description"] = message
             write_to_google_sheet(sender_id, "Technical Issue", data)
-            send_message(sender_id, "Thanks! A team member will follow up soon.", platform=platform)
+            send_message(sender_id, "Thank you! A team member will follow up soon regarding your technical issue.",
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                         platform=platform)
             del user_data[sender_id]
 
-    # Lead Capture Flow
+    # Lead Capture Flow: Name, Email, Phone, Business Name, Website
     elif sender_id in user_data and user_data[sender_id]["category"] == "Lead Capture":
         state = user_data[sender_id]["state"]
         data = user_data[sender_id]["data"]
         if state == "lead_name":
             data["name"] = message
-            send_message(sender_id, "Your email address?", platform=platform)
+            send_message(sender_id, "Please provide your email address.", platform=platform)
             user_data[sender_id]["state"] = "lead_email"
         elif state == "lead_email":
             data["email"] = message
-            send_message(sender_id, "Your phone number?", platform=platform)
+            send_message(sender_id, "Please provide your phone number.", platform=platform)
             user_data[sender_id]["state"] = "lead_phone"
         elif state == "lead_phone":
             data["phone"] = message
-            send_message(sender_id, "Your business name?", platform=platform)
+            send_message(sender_id, "Please provide your business name.", platform=platform)
             user_data[sender_id]["state"] = "lead_business"
         elif state == "lead_business":
             data["business_name"] = message
-            send_message(sender_id, "Your website (if applicable)?", platform=platform)
+            send_message(sender_id, "Please provide your website (if applicable).", platform=platform)
             user_data[sender_id]["state"] = "lead_website"
         elif state == "lead_website":
             data["website"] = message
             write_to_google_sheet(sender_id, "Lead Capture", data)
-            send_message(sender_id, "Thanks for your info. We’ll reach out soon.", platform=platform)
+            send_message(sender_id, "Thank you! We’ll reach out soon with more information.",
+                         quick_replies=[{"title": "Back to Main Menu", "payload": "start"}],
+                         platform=platform)
             del user_data[sender_id]
 
     # Fallback
@@ -393,17 +399,17 @@ def write_to_google_sheet(sender_id, category, data):
     if gc and worksheet:
         try:
             row = [
-                sender_id,
-                category,
-                data.get("name", ""),
-                data.get("order_number", ""),
-                data.get("urgency", ""),
-                data.get("website", ""),
-                data.get("issue_description", ""),
-                data.get("email", ""),
-                data.get("phone", ""),
-                data.get("business_name", ""),
-                datetime.datetime.now().isoformat()
+                sender_id,  # Sender ID
+                category,  # Category
+                data.get("name", ""),  # User Name
+                data.get("order_number", ""),  # Order Number
+                data.get("urgency", ""),  # Urgency
+                data.get("website", ""),  # Website
+                data.get("issue_description", ""),  # Issue Description
+                data.get("email", ""),  # Email
+                data.get("phone", ""),  # Phone
+                data.get("business_name", ""),  # Company
+                datetime.datetime.now().isoformat()  # Timestamp
             ]
             worksheet.append_row(row)
             logger.info("Data written to Google Sheet for sender_id: %s, category: %s", sender_id, category)
