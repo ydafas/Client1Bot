@@ -60,7 +60,8 @@ def fb_webhook():
                         elif 'optin' in messaging_event:  # Handle messaging_optins for testing
                             sender_id = messaging_event['sender']['id']
                             logger.info("🔹 Received messaging_optins for sender_id: %s", sender_id)
-                            if FB_PAGE_TOKEN:
+                            if FB_PAGE_TOKEN and 'payload' in messaging_event['optin'] and messaging_event['optin']['payload'] != 'start':
+                                # Only send subscription message for actual opt-in payloads, not 'start'
                                 send_message(sender_id, f"Welcome to {BUSINESS_NAME}! You’ve opted into messaging. How can I help?",
                                              quick_replies=[{"title": "Get Started", "payload": "get_started"}],
                                              platform="meta")
@@ -88,12 +89,12 @@ def wechat_webhook():
 # ✅ Process Incoming Messages (Multi-Platform Compatible)
 def process_message(sender_id, message, platform="meta"):
     # Clear state if processing a reset command to prevent interference
-    if message in ['start', 'get_started']:
+    if message in ['start', 'get_started', 'back to main menu']:
         if sender_id in user_data:
             del user_data[sender_id]  # Reset state for new interactions
 
     # Handle non-stateful messages (quick replies, standalone commands) first
-    if message in ['hi', 'hello', 'start', 'get_started']:  # Handle Get Started button
+    if message in ['hi', 'hello', 'start', 'get_started', 'back to main menu']:  # Handle Get Started button and text input
         send_message(sender_id, f"Hey there! Welcome to {BUSINESS_NAME}! 🚀 How can I help?",
                      quick_replies=[{"title": "Services", "payload": "services"},
                                     {"title": "FAQs", "payload": "faq"},
