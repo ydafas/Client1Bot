@@ -1,0 +1,16 @@
+# Ignore Google Service Account JSON file
+service_account.json
+
+# Ignore compiled Python files
+__pycache__/
+
+# Ignore virtual environment folder (if using one)
+venv/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore logs and cache files
+*.log
+*.pyc
